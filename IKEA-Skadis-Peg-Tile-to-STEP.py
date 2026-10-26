@@ -14,15 +14,17 @@ script does not mirror fails loudly instead of producing a stale STEP.
 
 Each export is written next to the .scad as
 <scad name>_<tile_x>x<tile_y>-offset-<X>x<Y>.step, where X and Y are the
-offsets in mm for tiling that part.
+offsets in mm for tiling that part. A clearance above 0 adds
+-clearance-<clearance> before .step.
 
-Usage: uv run IKEA-Skadis-Peg-Tile-to-STEP.py [tile.scad] [--tiles XxY ...]
-  Without --tiles it exports tile_x/tile_y as set in the .scad;
-  --tiles 1x1 3x2 exports one file per tile count.
+Usage: uv run IKEA-Skadis-Peg-Tile-to-STEP.py [tile.scad] [--tiles XxY ...] [--clearance MM ...]
+  Without --tiles or --clearance it uses the values set in the .scad;
+  --tiles 1x1 3x2 --clearance 0 0.1 exports one file per combination.
 Needs `openscad` on PATH.
 """
 
 import argparse
+import itertools
 import json
 import re
 import subprocess
@@ -43,11 +45,15 @@ def run_openscad(scad: Path, out: Path, *args: str) -> None:
 def read_layout(scad: Path, tmp: Path, defines: list[str]) -> dict:
     echo = tmp / "layout.echo"
     run_openscad(scad, echo, *defines)
+    lines = echo.read_text().splitlines()
+    # A failed assert() still exits 0; its message lands in the echo output.
+    if errors := [line for line in lines if line.startswith("ERROR:")]:
+        sys.exit(f"openscad failed on {scad}:\n" + "\n".join(errors))
     layout = {}
-    for line in echo.read_text().splitlines():
+    for line in lines:
         if m := re.fullmatch(r"ECHO: (STEP_\w+) = (.+)", line.strip()):
             layout[m[1]] = json.loads(m[2])
-    missing = {"STEP_TILES", "STEP_PEG", "STEP_PEGS", "STEP_PLATE"} - layout.keys()
+    missing = {"STEP_TILES", "STEP_PEG", "STEP_PEGS", "STEP_PLATE", "STEP_CLEARANCE"} - layout.keys()
     if missing:
         sys.exit(f"{scad} does not echo {', '.join(sorted(missing))}")
     return layout
@@ -109,6 +115,12 @@ def tile_counts(value: str) -> tuple[int, int]:
     return int(m[1]), int(m[2])
 
 
+def clearance_mm(value: str) -> str:
+    if not re.fullmatch(r"\d+(?:\.\d+)?", value):
+        raise argparse.ArgumentTypeError(f"expected a clearance in mm like 0.1, got {value!r}")
+    return value
+
+
 def export_part(scad: Path, defines: list[str], tmp: Path) -> None:
     layout = read_layout(scad, tmp, defines)
     tile = build_tile(layout, scad.stem)
@@ -116,10 +128,12 @@ def export_part(scad: Path, defines: list[str], tmp: Path) -> None:
 
     tile_x, tile_y = layout["STEP_TILES"]
     _, (offset_x, offset_y, _) = layout["STEP_PLATE"]
-    step = scad.with_name(f"{scad.stem}_{tile_x:g}x{tile_y:g}-offset-{offset_x:g}x{offset_y:g}.step")
+    clearance = layout["STEP_CLEARANCE"]
+    suffix = f"-clearance-{clearance:g}" if clearance else ""
+    step = scad.with_name(f"{scad.stem}_{tile_x:g}x{tile_y:g}-offset-{offset_x:g}x{offset_y:g}{suffix}.step")
     if not export_step(tile, step):
         sys.exit(f"export_step failed for {step}")
-    print(f"Wrote {step}: Backplate + {len(layout['STEP_PEGS'])} pegs")
+    print(f"Wrote {step}: Backplate + {len(layout['STEP_PEGS'])} pegs, {layout['STEP_PEG'][0]:g} mm wide")
 
 
 def main() -> None:
@@ -127,12 +141,15 @@ def main() -> None:
     parser.add_argument("scad", nargs="?", type=Path, default=Path(__file__).with_name("IKEA-Skadis-Peg-Tile.scad"))
     parser.add_argument("--tiles", nargs="+", type=tile_counts, metavar="XxY",
                         help="tile counts to export, one file each (default: tile_x/tile_y from the .scad)")
+    parser.add_argument("--clearance", nargs="+", type=clearance_mm, metavar="MM",
+                        help="clearance per side in mm, one file each (default: clearance from the .scad)")
     args = parser.parse_args()
 
-    runs = [["-D", f"tile_x={x}", "-D", f"tile_y={y}"] for x, y in args.tiles] if args.tiles else [[]]
+    tile_runs = [["-D", f"tile_x={x}", "-D", f"tile_y={y}"] for x, y in args.tiles] if args.tiles else [[]]
+    clearance_runs = [["-D", f"clearance={c}"] for c in args.clearance] if args.clearance else [[]]
     with tempfile.TemporaryDirectory() as tmp:
-        for defines in runs:
-            export_part(args.scad, defines, Path(tmp))
+        for tiles, clearance in itertools.product(tile_runs, clearance_runs):
+            export_part(args.scad, tiles + clearance, Path(tmp))
 
 
 if __name__ == "__main__":

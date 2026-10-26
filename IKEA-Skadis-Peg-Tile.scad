@@ -17,10 +17,12 @@
 //    Y = tile_y * 80 mm
 //
 //  STEP export (one solid per peg + one for the backplate):
-//    uv run IKEA-Skadis-Peg-Tile-to-STEP.py                  tile_x/tile_y below
-//    uv run IKEA-Skadis-Peg-Tile-to-STEP.py --tiles 1x1 3x2  one file per count
+//    uv run IKEA-Skadis-Peg-Tile-to-STEP.py   values below
+//    uv run IKEA-Skadis-Peg-Tile-to-STEP.py --tiles 1x1 3x2 --clearance 0 0.1
+//                                             one file per combination
 //  Files are named IKEA-Skadis-Peg-Tile_<tile_x>x<tile_y>-offset-<X>x<Y>.step,
-//  where X and Y are the offsets in mm for tiling that part.
+//  where X and Y are the offsets in mm for tiling that part. A clearance
+//  above 0 adds -clearance-<clearance> before .step.
 //  The script reads the STEP_* echo lines at the bottom of this file.
 // --------------------------------------------------------------
 
@@ -28,6 +30,8 @@
 tile_x = 1;
 // Number of tiles along Y, across the board (whole number, 1 or more)
 tile_y = 1;
+// Clearance per side in mm: moves each side face of every peg inward (0.1 gives 4.8 mm wide pegs)
+clearance = 0;
 
 $fn = 64;
 
@@ -41,7 +45,16 @@ peg_d    = 5;    // slot width
 hook_len = 15;   // hook length, equal to the slot height
 hook_h   = 5;    // hook thickness behind the board
 neck_len = 7.5;
-neck_h   = 5.2;  // board thickness plus clearance
+neck_h   = 5.2;  // gap for the board, which is about 5 mm thick
+
+assert(clearance >= 0 && clearance < peg_d / 2,
+       str("clearance must be at least 0 and less than ", peg_d / 2, " mm"));
+
+// Peg outline after clearance. Every side face moves inward by clearance,
+// so the round ends keep their centers and each peg stays on its slot.
+peg_w  = peg_d - 2 * clearance;
+hook_l = hook_len - 2 * clearance;
+neck_l = neck_len - 2 * clearance;
 
 plate_t = 1;
 
@@ -74,8 +87,8 @@ module slot_outline(len, d) {
 
 // One peg: the hook hangs behind the board, the neck passes through the slot.
 module skadis_peg() {
-    linear_extrude(hook_h) slot_outline(hook_len, peg_d);
-    translate([0, 0, hook_h]) linear_extrude(neck_h) slot_outline(neck_len, peg_d);
+    linear_extrude(hook_h) slot_outline(hook_l, peg_w);
+    translate([0, 0, hook_h]) linear_extrude(neck_h) slot_outline(neck_l, peg_w);
 }
 
 // --------------------------------------------------------------
@@ -83,7 +96,8 @@ for (p = pegs) translate([p[0], p[1], 0]) skadis_peg();
 translate([0, 0, plate_z]) cube(plate_size);
 
 // Layout for IKEA-Skadis-Peg-Tile-to-STEP.py.
-echo(STEP_PEG = [peg_d, hook_len, hook_h, neck_len, neck_h]);
+echo(STEP_PEG = [peg_w, hook_l, hook_h, neck_l, neck_h]);
 echo(STEP_PEGS = pegs);
 echo(STEP_PLATE = [[0, 0, plate_z], plate_size]);
 echo(STEP_TILES = [tile_x, tile_y]);
+echo(STEP_CLEARANCE = clearance);
