@@ -25,7 +25,7 @@ The peg dimensions and spacing come from [IKEA-Skadis-Pegboard-Mount-Generator](
 - **offset X** and **offset Y**: the spacing in mm between copies when you tile the part. These values are also the size of the backplate.
 - **clearance**: the clearance per side in mm. Each clearance has its own directory. A file name without the clearance part has no clearance. Refer to [Clearance](#clearance).
 
-For example, `IKEA-Skadis-Peg-Tile_3x2-offset-120x160-clearance-0.1.step` has 3 × 2 tiles and 24 pegs that are 4.8 mm wide. To tile it, space the copies 120 mm apart along X and 160 mm apart along Y.
+For example, `step-files/clearance-0.1/IKEA-Skadis-Peg-Tile_3x2-offset-120x160-clearance-0.1.step` has 3 × 2 tiles and 24 pegs that are 4.8 mm wide. To tile it, space the copies 120 mm apart along X and 160 mm apart along Y.
 
 ### Clearance
 
@@ -42,7 +42,7 @@ The hook is the part of a peg behind the board. The neck is the part in the slot
 
 ### Locating cubes
 
-Each file also holds a group named `Locating cubes`, with one cube for each peg. Use the cubes to align the part in CAD. In each row, each cube sits halfway between two slots. The cubes start at Z = 5, and their sides are the same length as the peg width.
+Each file also holds a group named `Locating cubes`, with one cube for each peg. Use the cubes to align the part in CAD. In each row, each cube sits halfway between two slots. Each cube is as wide as a peg. It starts at Z = 5 and touches the backplate at Z = 10.2.
 
 The STEP file stores the group as a sub-assembly. Shapr3D shows the group as a folder in the Items Manager. To hide or show all of the cubes, select the visibility icon of the folder.
 
