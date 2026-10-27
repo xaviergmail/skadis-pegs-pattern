@@ -16,7 +16,8 @@
 //    X = tile_x * 40 mm
 //    Y = tile_y * 80 mm
 //
-//  STEP export (one solid per peg + one for the backplate):
+//  STEP export: one solid for the backplate, one per peg and one per
+//  locating cube, with the cubes in a group named "Locating cubes":
 //    uv run IKEA-Skadis-Peg-Tile-to-STEP.py   values below
 //    uv run IKEA-Skadis-Peg-Tile-to-STEP.py --tiles 1x1 3x2 --clearance 0 0.1
 //                                             one file per combination
@@ -75,6 +76,17 @@ pegs = [
          margin_y + peg_d / 2 + (1 - row % 2) * row_pitch + col * slot_pitch]
 ];
 
+align = [
+    for (row = [0 : 2 * tile_x - 1], col = [0 : 2 * tile_y - 1])
+        [margin_x + peg_d / 2 + row * row_pitch,
+         margin_y + peg_d / 2 + (row % 2) * row_pitch + col * slot_pitch]
+];
+
+// Locating cubes for alignment in CAD, as [corner, size]: a cube of side
+// peg_w centered on each align point, from Z = 5. The render below and the
+// STEP export both use this list.
+locating_cubes = [for (a = align) [[a[0] - peg_w / 2, a[1] - peg_w / 2, 5], peg_w]];
+
 plate_size = [tile_x * tile_size_x, tile_y * tile_size_y, plate_t];
 plate_z = hook_h + neck_h;  // 10.2
 
@@ -91,13 +103,32 @@ module skadis_peg() {
     translate([0, 0, hook_h]) linear_extrude(neck_h) slot_outline(neck_l, peg_w);
 }
 
+module debug_cross(size=10, thickness=0.2, light=false) {
+    // X-axis (Red)
+    color(light ? "pink" : "red") cube([size, thickness, thickness], center=true);
+    // Y-axis (Green)
+    color(light ? "lime" : "green") cube([thickness, size, thickness], center=true);
+    // Z-axis (Blue)
+    color(light ? "lightblue" : "blue") cube([thickness, thickness, size], center=true);
+}
+
+
 // --------------------------------------------------------------
-for (p = pegs) translate([p[0], p[1], 0]) skadis_peg();
+for (p = pegs) translate([p[0], p[1], 0]) skadis_peg() ;
+// -- locating pins
+{
+    for (c = locating_cubes) {
+        translate(c[0])
+        color("blue")
+        cube(c[1]);
+    }
+}
 translate([0, 0, plate_z]) cube(plate_size);
 
 // Layout for IKEA-Skadis-Peg-Tile-to-STEP.py.
 echo(STEP_PEG = [peg_w, hook_l, hook_h, neck_l, neck_h]);
 echo(STEP_PEGS = pegs);
+echo(STEP_CUBES = locating_cubes);
 echo(STEP_PLATE = [[0, 0, plate_z], plate_size]);
 echo(STEP_TILES = [tile_x, tile_y]);
 echo(STEP_CLEARANCE = clearance);

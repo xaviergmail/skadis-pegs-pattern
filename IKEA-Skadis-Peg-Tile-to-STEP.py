@@ -7,7 +7,8 @@
 
 OpenSCAD cannot write STEP. This script asks OpenSCAD for the tile layout
 (the STEP_* echo lines in the .scad) and rebuilds the same geometry as exact
-B-rep with build123d: a "Backplate" solid plus one "Peg N" solid per peg.
+B-rep with build123d: a "Backplate" solid, one "Peg N" solid per peg, and a
+"Locating cubes" group (a STEP sub-assembly) with one "Cube N" solid per cube.
 Before writing, it renders the .scad with OpenSCAD and compares volume and
 bounding box with the B-rep, so a change to the .scad's modules that this
 script does not mirror fails loudly instead of producing a stale STEP.
@@ -53,7 +54,7 @@ def read_layout(scad: Path, tmp: Path, defines: list[str]) -> dict:
     for line in lines:
         if m := re.fullmatch(r"ECHO: (STEP_\w+) = (.+)", line.strip()):
             layout[m[1]] = json.loads(m[2])
-    missing = {"STEP_TILES", "STEP_PEG", "STEP_PEGS", "STEP_PLATE", "STEP_CLEARANCE"} - layout.keys()
+    missing = {"STEP_TILES", "STEP_PEG", "STEP_PEGS", "STEP_CUBES", "STEP_PLATE", "STEP_CLEARANCE"} - layout.keys()
     if missing:
         sys.exit(f"{scad} does not echo {', '.join(sorted(missing))}")
     return layout
@@ -83,7 +84,15 @@ def build_tile(layout: dict, label: str) -> Compound:
         peg.label = f"Peg {i}"
         pegs.append(peg)
 
-    return Compound(label=label, children=[plate, *pegs])
+    cubes = []
+    for i, (corner, size) in enumerate(layout["STEP_CUBES"], 1):
+        cube = Solid.make_box(size, size, size, Plane(origin=corner))
+        cube.label = f"Cube {i}"
+        cubes.append(cube)
+    # A nested Compound becomes a STEP sub-assembly: one folder in Shapr3D's Items Manager.
+    locating_cubes = Compound(label="Locating cubes", children=cubes)
+
+    return Compound(label=label, children=[plate, locating_cubes, *pegs])
 
 
 def check_against_openscad(scad: Path, tile: Compound, tmp: Path, defines: list[str]) -> None:
@@ -133,7 +142,8 @@ def export_part(scad: Path, defines: list[str], tmp: Path) -> None:
     step = scad.with_name(f"{scad.stem}_{tile_x:g}x{tile_y:g}-offset-{offset_x:g}x{offset_y:g}{suffix}.step")
     if not export_step(tile, step):
         sys.exit(f"export_step failed for {step}")
-    print(f"Wrote {step}: Backplate + {len(layout['STEP_PEGS'])} pegs, {layout['STEP_PEG'][0]:g} mm wide")
+    print(f"Wrote {step}: Backplate, {len(layout['STEP_PEGS'])} pegs ({layout['STEP_PEG'][0]:g} mm wide), "
+          f"{len(layout['STEP_CUBES'])} locating cubes")
 
 
 def main() -> None:
