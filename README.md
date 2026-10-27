@@ -1,6 +1,6 @@
 # skadis-pegs-pattern
 
-This repository holds STEP files of backplates with pegs for the IKEA SKÅDIS pegboard. Each file holds a 1 mm backplate and its pegs as separate bodies. Copies of a part tile with no gap, and each SKÅDIS slot under them gets one peg.
+This repository holds STEP files of backplates with pegs for the IKEA SKÅDIS pegboard. Each file holds a 1 mm backplate, its pegs and a group of locating cubes, all as separate bodies. Copies of a part tile with no gap, and each SKÅDIS slot under them gets one peg.
 
 ![A 3 x 2 part: 24 pegs on a 120 x 160 mm backplate](images/IKEA-Skadis-Peg-Tile_3x2-offset-120x160.png)
 
@@ -40,6 +40,12 @@ Without clearance, each peg is 5 mm wide, the same width as a SKÅDIS slot. If t
 
 The hook is the part of a peg behind the board. The neck is the part in the slot. The heights do not change: the gap between the hook and the backplate stays 5.2 mm.
 
+### Locating cubes
+
+Each file also holds a group named `Locating cubes`, with one cube for each peg. Use the cubes to align the part in CAD. In each row, each cube sits halfway between two slots. The cubes start at Z = 5, and their sides are the same length as the peg width.
+
+The STEP file stores the group as a sub-assembly. Shapr3D shows the group as a folder in the Items Manager. To hide or show all of the cubes, select the visibility icon of the folder.
+
 ### Axes
 
 All dimensions are in millimeters.
@@ -55,7 +61,7 @@ Use the offsets from the file name as the spacing between copies. These steps ar
 1. Import the STEP file with **Insert > File**.
 2. Go to **Transform > Pattern**.
 3. Set **Type** to **Linear**.
-4. Select every body of the part: the `Backplate` and all of the `Peg` bodies.
+4. Select every body of the part: the `Backplate`, all of the `Peg` bodies and, if you use them, the locating cubes.
 5. Drag the gizmo arrow that points along X.
 6. Set **Spacing** to the X offset, and set **Quantity**.
 7. Do steps 5 and 6 again with the Y arrow and the Y offset.
