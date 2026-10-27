@@ -83,10 +83,12 @@ align = [
          margin_y + peg_d / 2 + (row % 2) * row_pitch + col * slot_pitch]
 ];
 
-// Locating cubes for alignment in CAD, as [corner, size]: a cube of side
-// peg_w centered on each align point, from Z = 5. The render below and the
-// STEP export both use this list.
-locating_cubes = [for (a = align) [[a[0] - peg_w / 2, a[1] - peg_w / 2, 5], peg_w]];
+// Locating cubes for alignment in CAD, as [corner, size]: peg_w wide and
+// deep, centered on each align point. Each cube spans the same heights as
+// the peg necks: from the top of the hooks (Z = hook_h) up to the backplate
+// (Z = plate_z), so it touches the backplate. The render below and the STEP
+// export both use this list.
+locating_cubes = [for (a = align) [[a[0] - peg_w / 2, a[1] - peg_w / 2, hook_h], [peg_w, peg_w, neck_h]]];
 
 plate_size = [tile_x * tile_size_x, tile_y * tile_size_y, plate_t];
 plate_z = hook_h + neck_h;  // 10.2

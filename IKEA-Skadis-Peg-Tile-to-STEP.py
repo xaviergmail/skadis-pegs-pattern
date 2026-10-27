@@ -86,7 +86,7 @@ def build_tile(layout: dict, label: str) -> Compound:
 
     cubes = []
     for i, (corner, size) in enumerate(layout["STEP_CUBES"], 1):
-        cube = Solid.make_box(size, size, size, Plane(origin=corner))
+        cube = Solid.make_box(*size, Plane(origin=corner))
         cube.label = f"Cube {i}"
         cubes.append(cube)
     # A nested Compound becomes a STEP sub-assembly: one folder in Shapr3D's Items Manager.
