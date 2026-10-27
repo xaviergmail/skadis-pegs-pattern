@@ -13,9 +13,9 @@ Before writing, it renders the .scad with OpenSCAD and compares volume and
 bounding box with the B-rep, so a change to the .scad's modules that this
 script does not mirror fails loudly instead of producing a stale STEP.
 
-Each export is written next to the .scad as
-<scad name>_<tile_x>x<tile_y>-offset-<X>x<Y>.step, where X and Y are the
-offsets in mm for tiling that part. A clearance above 0 adds
+Each export is written to step-files/clearance-<clearance>/ next to the .scad
+as <scad name>_<tile_x>x<tile_y>-offset-<X>x<Y>.step, where X and Y are the
+offsets in mm for tiling that part. A clearance above 0 also adds
 -clearance-<clearance> before .step.
 
 Usage: uv run IKEA-Skadis-Peg-Tile-to-STEP.py [tile.scad] [--tiles XxY ...] [--clearance MM ...]
@@ -139,7 +139,9 @@ def export_part(scad: Path, defines: list[str], tmp: Path) -> None:
     _, (offset_x, offset_y, _) = layout["STEP_PLATE"]
     clearance = layout["STEP_CLEARANCE"]
     suffix = f"-clearance-{clearance:g}" if clearance else ""
-    step = scad.with_name(f"{scad.stem}_{tile_x:g}x{tile_y:g}-offset-{offset_x:g}x{offset_y:g}{suffix}.step")
+    out_dir = scad.parent / "step-files" / f"clearance-{clearance:g}"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    step = out_dir / f"{scad.stem}_{tile_x:g}x{tile_y:g}-offset-{offset_x:g}x{offset_y:g}{suffix}.step"
     if not export_step(tile, step):
         sys.exit(f"export_step failed for {step}")
     print(f"Wrote {step}: Backplate, {len(layout['STEP_PEGS'])} pegs ({layout['STEP_PEG'][0]:g} mm wide), "

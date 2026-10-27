@@ -21,9 +21,10 @@
 //    uv run IKEA-Skadis-Peg-Tile-to-STEP.py   values below
 //    uv run IKEA-Skadis-Peg-Tile-to-STEP.py --tiles 1x1 3x2 --clearance 0 0.1
 //                                             one file per combination
-//  Files are named IKEA-Skadis-Peg-Tile_<tile_x>x<tile_y>-offset-<X>x<Y>.step,
-//  where X and Y are the offsets in mm for tiling that part. A clearance
-//  above 0 adds -clearance-<clearance> before .step.
+//  Files go to step-files/clearance-<clearance>/ and are named
+//  IKEA-Skadis-Peg-Tile_<tile_x>x<tile_y>-offset-<X>x<Y>.step, where X and Y
+//  are the offsets in mm for tiling that part. A clearance above 0 also
+//  adds -clearance-<clearance> before .step.
 //  The script reads the STEP_* echo lines at the bottom of this file.
 // --------------------------------------------------------------
 
